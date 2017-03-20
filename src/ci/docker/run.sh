@@ -18,16 +18,17 @@ docker_dir="`dirname $script`"
 ci_dir="`dirname $docker_dir`"
 src_dir="`dirname $ci_dir`"
 root_dir="`dirname $src_dir`"
+tag=rust-ci-$image
 
 source "$ci_dir/shared.sh"
 
-retry docker \
+docker \
   build \
   --rm \
-  -t rust-ci \
+  -t $tag \
   "`dirname "$script"`/$image"
 
-objdir=$root_dir/obj
+objdir=$root_dir/obj/$image
 
 mkdir -p $HOME/.cargo
 mkdir -p $objdir/tmp
@@ -60,5 +61,5 @@ exec docker \
   --volume "$HOME/rustsrc:$HOME/rustsrc" \
   --privileged \
   --rm \
-  rust-ci \
+  $tag \
   /checkout/src/ci/run.sh
