@@ -9,7 +9,13 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
-set -e
+set -eE
+
+function err(){
+  sleep infinity
+}
+
+trap "err" ERR
 
 if [ "$NO_CHANGE_USER" = "" ]; then
   if [ "$LOCAL_USER_ID" != "" ]; then

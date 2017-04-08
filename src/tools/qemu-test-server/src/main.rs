@@ -8,6 +8,10 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+#![feature(libc)]
+
+extern crate libc;
+
 /// This is a small server which is intended to run inside of an emulator. This
 /// server pairs with the `qemu-test-client` program in this repository. The
 /// `qemu-test-client` connects to this server over a TCP socket and performs
@@ -41,7 +45,31 @@ macro_rules! t {
 
 static TEST: AtomicUsize = ATOMIC_USIZE_INIT;
 
+fn debug() {
+    ::std::env::set_var("RUST_BACKTRACE", "1");
+
+    unsafe {
+        let pid = libc::fork();
+        if pid == 0 {
+            println!("@@ Child is running.");
+            return; // we are the child
+        }
+        assert!(pid > 0);
+
+        println!("@@ Watcher is running.");
+
+        let mut status: libc::c_int = 0;
+        libc::waitpid(pid, &mut status, 0);
+
+        println!("@@EXIT@@: {}", status);
+
+        ::std::process::exit(0);
+    }
+}
+
 fn main() {
+    debug();
+
     println!("starting test server");
     let listener = t!(TcpListener::bind("10.0.2.15:12345"));
     println!("listening!");

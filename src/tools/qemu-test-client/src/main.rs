@@ -51,6 +51,9 @@ fn main() {
 }
 
 fn spawn_emulator(rootfs: &Path, tmpdir: &Path) {
+    use std::os::unix::io::{FromRawFd, IntoRawFd};
+    use std::fs::OpenOptions;
+
     // Generate a new rootfs image now that we've updated the test server
     // executable. This is the equivalent of:
     //
@@ -71,6 +74,10 @@ fn spawn_emulator(rootfs: &Path, tmpdir: &Path) {
                 &mut t!(File::create(&rootfs_img))));
     assert!(t!(child.wait()).success());
 
+    let log = OpenOptions::new().create(true).append(true).open("qemu.log").unwrap();
+    let qout = unsafe { Stdio::from_raw_fd(log.try_clone().unwrap().into_raw_fd()) };
+    let qerr = unsafe { Stdio::from_raw_fd(log.try_clone().unwrap().into_raw_fd()) };
+
     // Start up the emulator, in the background
     let mut cmd = Command::new("qemu-system-arm");
     cmd.arg("-M").arg("vexpress-a15")
@@ -80,7 +87,8 @@ fn spawn_emulator(rootfs: &Path, tmpdir: &Path) {
        .arg("-dtb").arg("/tmp/vexpress-v2p-ca15-tc1.dtb")
        .arg("-append").arg("console=ttyAMA0 root=/dev/ram rdinit=/sbin/init init=/sbin/init")
        .arg("-nographic")
-       .arg("-redir").arg("tcp:12345::12345");
+       .arg("-redir").arg("tcp:12345::12345")
+       .stdout(qout).stderr(qerr);
     t!(cmd.spawn());
 
     // Wait for the emulator to come online
